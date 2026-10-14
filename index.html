@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Sammy's Treasure</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500;1,9..144,600&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#FBF4E6; --cream-2:#F3E7CE;
+    --rust:#B4552C; --rust-deep:#8E3F1E;
+    --ink:#43291A; --acorn:#7A4A28;
+    --shadow:0 18px 50px rgba(67,41,26,.35);
+    /* one shared width/size for caption, image and control bar */
+    --unit:min(90vw, 62dvh, 640px);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    font-family:'Nunito',system-ui,sans-serif;
+    background:radial-gradient(120% 120% at 50% 0%, #F7EAD0 0%, #EAD3AE 55%, #D8B98C 100%);
+    color:var(--ink);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    min-height:100dvh;overflow:hidden;user-select:none;padding:14px;
+  }
+
+  /* ---- Text panel ABOVE the image — never covers the art ---- */
+  .caption{
+    width:var(--unit);
+    margin:0 auto 12px;
+    background:rgba(251,244,230,.97);
+    border:1px solid rgba(180,85,44,.30);
+    border-radius:16px;
+    padding:14px 22px;
+    text-align:center;
+    font-family:'Fraunces',serif;font-weight:500;color:var(--ink);
+    font-size:clamp(15px,2.4vw,21px);line-height:1.45;
+    box-shadow:0 6px 16px rgba(67,41,26,.16);
+    /* hold a steady height so the picture doesn't jump between pages */
+    min-height:calc(3.2em + 28px);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+  }
+  .caption .ln{display:block;text-wrap:balance;}
+  .caption .ln + .ln{margin-top:.3em;}
+  /* ---- The book's refrain — same words, same look, every time, so little readers can say it along ---- */
+  .caption .refrain{font-style:italic;font-weight:600;color:var(--rust-deep);}
+  .caption.empty{visibility:hidden;}   /* cover & back page carry their own overlay */
+  @media (max-width:680px){
+    .caption{font-size:clamp(16px,4.4vw,20px);}
+  }
+
+  /* ---- Book stage (square image) ---- */
+  .stage{
+    position:relative;
+    width:var(--unit);
+    height:var(--unit);
+    border-radius:18px;overflow:hidden;
+    box-shadow:var(--shadow);background:#2c1a10;
+  }
+  .page{
+    position:absolute;inset:0;opacity:0;transform:scale(1.02);
+    transition:opacity .45s ease, transform .55s ease;
+    pointer-events:none;z-index:1;
+  }
+  .page.active{opacity:1;transform:scale(1);z-index:2;pointer-events:auto;}
+  .page img{width:100%;height:100%;object-fit:cover;display:block;}
+
+  /* ---- Cover title overlay (cover art is built for this) ---- */
+  /* Title sits on a solid cream plaque — no halo or glow — so it reads clearly over any art */
+  .cover-title{position:absolute;left:0;right:0;top:5%;text-align:center;padding:0 6%;z-index:3;pointer-events:none;}
+  .cover-title .plaque{
+    display:inline-block;max-width:100%;
+    background:rgba(251,244,230,.96);
+    border:2px solid rgba(180,85,44,.45);
+    border-radius:18px;
+    padding:.5em 1.1em .6em;
+    box-shadow:0 6px 18px rgba(67,41,26,.30);
+  }
+  .cover-title h1{
+    font-family:'Fraunces',serif;font-weight:600;
+    font-size:clamp(28px,7.8vw,54px);line-height:1.05;color:#5A2E14;
+    text-shadow:none;
+  }
+  .cover-title .sub{
+    font-family:'Fraunces',serif;font-style:italic;font-weight:600;
+    font-size:clamp(15px,4vw,24px);color:#7A3A1A;margin-top:.35em;
+    text-shadow:none;
+  }
+  .cover-foot{
+    position:absolute;left:50%;bottom:5.5%;transform:translateX(-50%);
+    z-index:3;pointer-events:none;text-align:center;white-space:nowrap;
+    font-family:'Nunito',sans-serif;font-weight:800;letter-spacing:.16em;text-transform:uppercase;
+    font-size:clamp(10px,2.7vw,15px);color:#5A2E14;
+    background:rgba(251,244,230,.92);
+    border:1px solid rgba(180,85,44,.4);
+    border-radius:22px;padding:8px 20px;
+    box-shadow:0 4px 14px rgba(67,41,26,.28);
+  }
+
+  /* ---- Verse overlay (back page art is built for this) ---- */
+  .verse{
+    position:absolute;left:50%;top:8%;transform:translate(-50%,0);
+    width:82%;max-width:460px;z-index:3;pointer-events:none;
+    background:rgba(251,244,230,.94);border:2px solid rgba(180,85,44,.5);
+    border-radius:16px;padding:26px 26px 22px;text-align:center;
+    box-shadow:0 10px 30px rgba(67,41,26,.3);
+  }
+  .verse p{font-family:'Fraunces',serif;font-style:italic;font-weight:500;font-size:clamp(16px,4.2vw,24px);line-height:1.4;color:var(--ink);}
+  .verse .ref{font-family:'Nunito',sans-serif;font-style:normal;font-weight:800;letter-spacing:.06em;text-transform:uppercase;font-size:clamp(11px,2.8vw,14px);color:var(--rust-deep);margin-top:.9em;display:block;}
+
+  /* ---- Tap zones ---- */
+  .zone{position:absolute;top:0;bottom:0;z-index:4;cursor:pointer;}
+  .zone.prev{left:0;width:38%;}
+  .zone.next{right:0;width:62%;}
+
+  /* ---- Controls ---- */
+  .bar{
+    display:flex;align-items:center;gap:14px;width:var(--unit);
+    margin-top:14px;padding:10px 16px;background:rgba(251,244,230,.92);
+    border-radius:40px;box-shadow:0 6px 18px rgba(67,41,26,.18);
+  }
+  .nav{
+    flex:0 0 auto;width:44px;height:44px;border-radius:50%;border:none;cursor:pointer;
+    font-size:22px;line-height:1;background:var(--rust);color:var(--cream);
+    display:flex;align-items:center;justify-content:center;transition:transform .15s ease, background .2s ease;
+  }
+  .nav:hover{background:var(--rust-deep);}
+  .nav:active{transform:scale(.9);}
+  .nav:disabled{opacity:.35;cursor:default;background:var(--rust);}
+  .track{position:relative;flex:1 1 auto;height:10px;border-radius:6px;background:var(--cream-2);}
+  .fill{position:absolute;left:0;top:0;bottom:0;border-radius:6px;background:linear-gradient(90deg,var(--rust),#D08A4A);transition:width .4s ease;}
+  .acorn{position:absolute;top:50%;transform:translate(-50%,-50%);line-height:0;transition:left .4s ease;filter:drop-shadow(0 1px 1px rgba(67,41,26,.4));}
+  .count{flex:0 0 auto;font-weight:800;font-size:14px;color:var(--rust-deep);min-width:52px;text-align:center;font-variant-numeric:tabular-nums;}
+
+  /* ---- First-time hint ---- */
+  .hint{
+    position:absolute;bottom:16px;left:50%;transform:translateX(-50%);z-index:5;
+    background:rgba(44,26,16,.7);color:var(--cream);font-weight:700;font-size:13px;
+    padding:8px 16px;border-radius:20px;white-space:nowrap;transition:opacity .5s ease;pointer-events:none;
+  }
+  .hint.hide{opacity:0;}
+</style>
+</head>
+<body>
+
+  <div class="caption empty" id="caption"></div>
+
+  <div class="stage" id="stage">
+    <div class="hint" id="hint">Tap right to turn the page &rarr;</div>
+  </div>
+
+  <div class="bar">
+    <button class="nav" id="prev" aria-label="Previous page">&lsaquo;</button>
+    <div class="track"><div class="fill" id="fill"></div><span class="acorn" id="acorn"><svg width="22" height="26" viewBox="0 0 22 26" aria-hidden="true"><path d="M11 1.5c.4 0 .7.3.7.7v2.6h-1.4V2.2c0-.4.3-.7.7-.7z" fill="#5A2E14"/><path d="M4 12.5c0 6.5 3.4 11.5 7 12.3 3.6-.8 7-5.8 7-12.3z" fill="#C98A4B"/><path d="M6.5 13.5c.3 4.6 2.2 8 4.5 9.3" stroke="#E6B47C" stroke-width="1.4" fill="none" stroke-linecap="round"/><path d="M2 11.2C2 7.2 6 4.4 11 4.4s9 2.8 9 6.8c0 1-.8 1.8-1.8 1.8H3.8C2.8 13 2 12.2 2 11.2z" fill="#7A4A28"/><path d="M5 8.2l3 3M8.5 6.4l4.2 4.6M12.6 5.9l4 4.4M5.5 11l6-5M10 11.2l5.5-5" stroke="#5A2E14" stroke-width=".9" opacity=".55" stroke-linecap="round"/></svg></span></div>
+    <span class="count" id="count">1 / 18</span>
+    <button class="nav" id="next" aria-label="Next page">&rsaquo;</button>
+  </div>
+
+<script>
+/* =========================================================
+   CONFIG  —  edit here
+   ========================================================= */
+const BOOK = {
+  showCoverTitle: true,
+  title:    "Sammy's Treasure",
+  subtitle: "",
+  imprint:  "A Maple Hollow Story",
+  verse:    "Clothe yourself with compassion and kindness.",
+  verseRef: "Colossians 3:12",
+  refrain:  "",   /* no spoken refrain in this book */
+};
+
+/* Pages in order. Text shows in the panel ABOVE the image,
+   so it never covers the art. Same words as the print book. */
+const PAGES = [
+  { file:"pages/00_cover.jpg", cover:true, alt:"Cover — Sammy offers Gus an acorn" },
+  { file:"pages/01_pg01.jpg", alt:"Sammy gathers acorns at the big oak", text:
+`Sammy the squirrel lived in a big oak tree.
+He loved to gather acorns.
+Gathering was his favorite thing of all.` },
+  { file:"pages/02_pg02.jpg", alt:"Mama feeds a little bird at the window", text:
+`On his way out,
+Sammy saw Mama at the window.
+A little bird sat there, cold and hungry.
+Mama took an acorn from her own bowl.
+She held it out, and the bird ate.
+"Bye, Mama!" Sammy called.
+He was already running to play.` },
+  { file:"pages/03_pg03.jpg", alt:"Bella and Charlie call Sammy to play", text:
+`Sammy ran to the meadow.
+Bella and Charlie were there.
+"Sammy!" they called.
+"Let's go on a hunt, an acorn hunt!"` },
+  { file:"pages/04_pg04.jpg", alt:"Hunting and gathering acorns", text:
+`All morning they hunted and gathered acorns.
+They ran from place to place.
+They laughed and played.
+It was a super fun day.` },
+  { file:"pages/05_pg05.jpg", alt:"Sammy's big pile of acorns", text:
+`Sammy's pile grew big.
+Then bigger. Then biggest of all!
+"Look how many I have," he said.
+"They are all mine."` },
+  { file:"pages/06_pg06.jpg", alt:"A big shadow \u2014 Gus the bear", text:
+`Then a big shadow fell to the ground.
+GRRR-UMBLE went a deep, hungry sound.
+Oh NO! It was Gus, the big brown bear.` },
+  { file:"pages/07_pg07.jpg", alt:"Gus is hungry and sad", text:
+`Bella and Charlie hid behind Sammy.
+Gus looked grumpy and sad.
+"I have no food," he said.
+"Winter is near, and my tummy is empty."` },
+  { file:"pages/08_pg08.jpg", alt:"Sammy holds his acorns tight", text:
+`Sammy was scared.
+He held his acorns tight.
+"These acorns are mine," he thought.
+"Gus the bear is big and will eat a lot."` },
+  { file:"pages/09_pg09.jpg", alt:"Sammy remembers Mama's open paw", text:
+`Then Sammy thought of Mama.
+He saw her paw open at the window.
+He saw the little bird eat.
+Sammy was still scared.
+But now he knew what to do.` },
+  { file:"pages/10_pg10.jpg", alt:"Sammy offers Gus an acorn", text:
+`Sammy took a deep breath.
+He walked up to Gus.
+"Here," he said. "You can have some of mine.
+No one should be hungry."` },
+  { file:"pages/11_pg11.jpg", alt:"Bella and Charlie share too", text:
+`Bella hopped up too.
+Charlie came out from hiding.
+"We will share too!" they said.` },
+  { file:"pages/12_pg12.jpg", alt:"Gus cries a happy tear", text:
+`Gus blinked his eyes.
+A big tear rolled down his face.
+"For me?" he said.
+"You would share with me?"
+He ate, and his growl turned soft and happy.` },
+  { file:"pages/13_pg13.jpg", alt:"Sitting together in the sun", text:
+`They all sat together in the sun.
+The pile was smaller now.
+But their bear friend's tummy was full.` },
+  { file:"pages/14_pg14.jpg", alt:"Sammy's little pile", text:
+`Sammy looked at his little pile.
+It was small now.
+But something inside him felt bigger than ever.` },
+  { file:"pages/15_pg15.jpg", alt:"Mama hugs Sammy", text:
+`Sammy ran home to Mama.
+He told her all about Gus the bear.
+"I shared my acorns!
+Like you did with the bird."
+Mama pulled him close, her eyes shining.
+"That was kindness, Sammy," she said.
+"You opened your paws, just like I did."` },
+  { file:"pages/16_pg16.jpg", alt:"Sammy's prayer", text:
+`That night, Sammy prayed.
+"Thank You, God, for kindness.
+Help me to be kind to others too. Amen."` },
+  { file:"pages/17_back.jpg", verse:true, alt:"Back — the verse" },
+];
+
+/* =========================================================
+   ENGINE
+   ========================================================= */
+const stage=document.getElementById('stage');
+const caption=document.getElementById('caption');
+const prevBtn=document.getElementById('prev');
+const nextBtn=document.getElementById('next');
+const fill=document.getElementById('fill');
+const acorn=document.getElementById('acorn');
+const count=document.getElementById('count');
+const hint=document.getElementById('hint');
+let i=0;
+
+const els=PAGES.map((p,idx)=>{
+  const d=document.createElement('div');
+  d.className='page';d.dataset.idx=idx;
+  const img=document.createElement('img');
+  img.alt=p.alt||'';img.dataset.src=p.file;
+  d.appendChild(img);
+
+  if(p.cover && BOOK.showCoverTitle){
+    const t=document.createElement('div');t.className='cover-title';
+    t.innerHTML=`<div class="plaque"><h1>${BOOK.title}</h1>`+(BOOK.subtitle?`<div class="sub">${BOOK.subtitle}</div>`:'')+`</div>`;
+    d.appendChild(t);
+    if(BOOK.imprint){const f=document.createElement('div');f.className='cover-foot';f.textContent=BOOK.imprint;d.appendChild(f);}
+  }
+  if(p.verse){
+    const v=document.createElement('div');v.className='verse';
+    v.innerHTML=`<p>&ldquo;${BOOK.verse}&rdquo;<span class="ref">${BOOK.verseRef}</span></p>`;
+    d.appendChild(v);
+  }
+  stage.appendChild(d);
+  return d;
+});
+
+function setCaption(p){
+  caption.innerHTML='';
+  if(p.text){
+    p.text.split('\n').forEach(line=>{
+      const s=document.createElement('span');s.className='ln';
+      /* Highlight the refrain wherever it appears in a line */
+      if(!BOOK.refrain){ s.textContent=line; caption.appendChild(s); return; }
+      line.split(BOOK.refrain).forEach((part,i,arr)=>{
+        if(part)s.appendChild(document.createTextNode(part));
+        if(BOOK.refrain&&i<arr.length-1){
+          const r=document.createElement('span');r.className='refrain';r.textContent=BOOK.refrain;
+          s.appendChild(r);
+        }
+      });
+      caption.appendChild(s);
+    });
+    caption.classList.remove('empty');
+  } else {
+    caption.classList.add('empty');   /* keeps its space; cover/back use their own overlay */
+  }
+}
+
+function ensureLoaded(idx){
+  [idx-1,idx,idx+1].forEach(n=>{
+    if(n<0||n>=els.length)return;
+    const img=els[n].querySelector('img');
+    if(img&&!img.src&&img.dataset.src)img.src=img.dataset.src;
+  });
+}
+function render(){
+  els.forEach((el,n)=>el.classList.toggle('active',n===i));
+  setCaption(PAGES[i]);
+  ensureLoaded(i);
+  const pct=els.length>1?(i/(els.length-1))*100:0;
+  fill.style.width=pct+'%';acorn.style.left=pct+'%';
+  count.textContent=(i+1)+' / '+els.length;
+  prevBtn.disabled=(i===0);nextBtn.disabled=(i===els.length-1);
+}
+function go(n){const t=Math.max(0,Math.min(els.length-1,n));if(t===i)return;i=t;render();}
+function next(){go(i+1);dismissHint();}
+function prev(){go(i-1);dismissHint();}
+function dismissHint(){hint.classList.add('hide');}
+
+const zPrev=document.createElement('div');zPrev.className='zone prev';
+const zNext=document.createElement('div');zNext.className='zone next';
+zPrev.addEventListener('click',prev);zNext.addEventListener('click',next);
+stage.appendChild(zPrev);stage.appendChild(zNext);
+
+prevBtn.addEventListener('click',prev);
+nextBtn.addEventListener('click',next);
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){e.preventDefault();next();}
+  if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();prev();}
+  if(e.key==='Home'){go(0);dismissHint();}
+  if(e.key==='End'){go(els.length-1);dismissHint();}
+});
+
+let sx=0,sy=0;
+stage.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY;},{passive:true});
+stage.addEventListener('touchend',e=>{
+  const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;
+  if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)){dx<0?next():prev();}
+},{passive:true});
+
+setTimeout(dismissHint,4200);
+render();
+</script>
+</body>
+</html>
